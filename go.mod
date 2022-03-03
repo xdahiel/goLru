@@ -1,3 +1,3 @@
-module chuns.cn/goLru
+module github.com/xdahiel/goLru
 
 go 1.17
