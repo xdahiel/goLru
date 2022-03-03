@@ -13,6 +13,7 @@ type LRUCache struct {
 	mp     map[interface{}]*list.Element
 }
 
+// NewLRUCache construct a new cache
 func NewLRUCache(cap int) *LRUCache {
 	return &LRUCache{
 		cap:  cap,
@@ -21,6 +22,7 @@ func NewLRUCache(cap int) *LRUCache {
 	}
 }
 
+// Put store a key-value
 func (c *LRUCache) Put(k, v interface{}) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -35,6 +37,7 @@ func (c *LRUCache) Put(k, v interface{}) {
 	c.mp[k] = fr
 }
 
+// Get return the responding value of key
 func (c *LRUCache) Get(k interface{}) (interface{}, bool) {
 	v, ok := c.mp[k]
 	if !ok {
