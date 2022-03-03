@@ -6,11 +6,10 @@ import (
 )
 
 type LRUCache struct {
-	cap    int
-	expire int
-	lock   sync.Mutex
-	list   *list.List
-	mp     map[interface{}]*list.Element
+	cap  int
+	lock sync.Mutex
+	list *list.List
+	mp   map[interface{}]*list.Element
 }
 
 // NewLRUCache construct a new cache
