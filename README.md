@@ -1,2 +1,2 @@
 # goLru
-A LRU cache for golang.
+A LRU cache with expiration checking for golang.
