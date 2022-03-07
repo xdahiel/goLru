@@ -32,6 +32,11 @@ func NewLRUCache(cap int) *LRUCache {
 	}
 }
 
+// Tail return the tail of linked list
+func (c *LRUCache) Tail() *CacheItem {
+	return c.items.Back()
+}
+
 // Count return the count of items in the cache
 func (c *LRUCache) Count() int {
 	c.RLock()
@@ -151,6 +156,9 @@ func (c *LRUCache) Exists(key interface{}) bool {
 // Put Update the corresponding item's value or add a key/value pair
 func (c *LRUCache) Put(key, value interface{}, lifespan time.Duration) *CacheItem {
 	if !c.Exists(key) {
+		if c.Count() == c.cap {
+			c.Delete(c.Tail().key)
+		}
 		return c.add(key, value, lifespan)
 	}
 	c.Lock()
@@ -164,6 +172,7 @@ func (c *LRUCache) Put(key, value interface{}, lifespan time.Duration) *CacheIte
 	return item
 }
 
+// Get value according to key
 func (c *LRUCache) Get(key interface{}, args ...interface{}) (*CacheItem, error) {
 	c.RLock()
 	r, ok := c.mp[key]
@@ -180,6 +189,7 @@ func (c *LRUCache) Get(key interface{}, args ...interface{}) (*CacheItem, error)
 	return nil, ErrKeyNotFound
 }
 
+// Flush remove all data
 func (c *LRUCache) Flush() {
 	c.Lock()
 	defer c.Unlock()
