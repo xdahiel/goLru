@@ -1,7 +1,6 @@
 package goLru
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -67,12 +66,12 @@ func (c *LRUCache) addInternal(item *CacheItem) {
 	expDur := c.cleanupInterval
 	c.Unlock()
 
-	fmt.Println(item.key, expDur)
+	//fmt.Println(item.key, expDur)
 
-	//if item.lifespan > 0 && (expDur == 0 || item.lifespan < expDur) {
-	//	c.expirationCheck()
-	//}
-	go c.expirationCheck()
+	if item.lifespan > 0 && (expDur == 0 || item.lifespan < expDur) {
+		c.expirationCheck()
+	}
+	//go c.expirationCheck()
 }
 
 func (c *LRUCache) deleteInternal(key interface{}) (*CacheItem, error) {
@@ -98,15 +97,6 @@ func (c *LRUCache) Delete(key interface{}) (*CacheItem, error) {
 	return c.deleteInternal(key)
 }
 
-// Exists judge if given key is exists
-func (c *LRUCache) Exists(key interface{}) bool {
-	c.RLock()
-	defer c.RUnlock()
-
-	_, ok := c.mp[key]
-	return ok
-}
-
 // expiration check, triggered by a self-adjusting timer.
 func (c *LRUCache) expirationCheck() {
 	c.Lock()
@@ -115,44 +105,47 @@ func (c *LRUCache) expirationCheck() {
 	}
 
 	now := time.Now()
-	item := c.items.Back()
-	gap := now.Sub(item.accessAt)
-	// choose the least recently unused item
-	if gap >= item.lifespan {
-		c.deleteInternal(item.key)
-		gap = 0 * time.Second
-	} else {
-		gap = item.lifespan - gap
-	}
+	smallestDuration := 0 * time.Second
 
-	fmt.Println(gap, item.lifespan, item.key, "-------")
+	//fmt.Println(gap, item.lifespan, item.key, "-------")
 
 	// find a minimal duration to do a check again
-	//for key, item := range c.mp {
-	//	item.RLock()
-	//	lifespan := item.lifespan
-	//	accessedAt := item.accessAt
-	//	item.RUnlock()
-	//
-	//	if lifespan == 0 {
-	//		continue
-	//	}
-	//	if now.Sub(accessedAt) >= lifespan {
-	//		c.deleteInternal(key)
-	//	} else {
-	//		if smallestDuration == 0 || lifespan-now.Sub(accessedAt) < smallestDuration {
-	//			smallestDuration = lifespan - now.Sub(accessedAt)
-	//		}
-	//	}
-	//}
+	for key, item := range c.mp {
+		item.RLock()
+		lifespan := item.lifespan
+		accessedAt := item.accessAt
+		item.RUnlock()
 
-	c.cleanupInterval = gap
-	if gap > 0 {
-		c.cleanupTimer = time.AfterFunc(gap, func() {
+		if lifespan == 0 {
+			continue
+		}
+
+		if now.Sub(accessedAt) >= lifespan {
+			c.deleteInternal(key)
+		} else {
+			if smallestDuration == 0 || lifespan-now.Sub(accessedAt) < smallestDuration {
+				smallestDuration = lifespan - now.Sub(accessedAt)
+			}
+			break
+		}
+	}
+
+	c.cleanupInterval = smallestDuration
+	if smallestDuration > 0 {
+		c.cleanupTimer = time.AfterFunc(smallestDuration, func() {
 			go c.expirationCheck()
 		})
 	}
 	c.Unlock()
+}
+
+// Exists judge if given key is exists
+func (c *LRUCache) Exists(key interface{}) bool {
+	c.RLock()
+	defer c.RUnlock()
+
+	_, ok := c.mp[key]
+	return ok
 }
 
 // Put Update the corresponding item's value or add a key/value pair
@@ -166,6 +159,7 @@ func (c *LRUCache) Put(key, value interface{}, lifespan time.Duration) *CacheIte
 	item := c.mp[key]
 	item.SetValue(value)
 	item.keepAlive()
+	c.items.MoveToFront(item)
 
 	return item
 }

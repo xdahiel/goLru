@@ -14,8 +14,11 @@ func TestLRUCache(t *testing.T) {
 	c.Put(2, 20, lifespan)
 	c.Put(3, 30, lifespan)
 	c.Get(1)
+	for i := c.items.Front(); i.key != nil; i = i.next {
+		fmt.Println(i.key)
+	}
+	fmt.Println(c.items.Back().key, " ", c.items.Front().key)
 	time.Sleep(3 * time.Second)
 	fmt.Println(c.Get(2))
 	fmt.Println(c.Count())
-	fmt.Println(c.items.Back().key)
 }
